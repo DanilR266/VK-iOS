@@ -109,33 +109,49 @@ private extension ReviewsViewModel {
                 self?.showMoreReview(with: id)
             },
             reviewCount: reviewCount,
-            reviewImage: reviewImages.isEmpty ? nil : reviewImages
+            reviewImage: reviewImages
         )
         
         if let photoURLs = review.photo_urls {
             for urlString in photoURLs {
-                ReviewPhotoRequest.shared.getReviewPhoto(from: urlString) { [weak self] result in
-                    DispatchQueue.main.async {
-                        switch result {
-                        case .success(let data):
-                            if let image = UIImage(data: data) {
-                                reviewImages.append(image)
+                photoRequest.getReviewPhoto(from: urlString) { [weak self] result in
+                    switch result {
+                    case .success(let data):
+                        if let image = UIImage(data: data) {
+                            reviewImages.append(image)
+                            if reviewImages.count == review.photo_urls?.count {
+                                self?.updateReviewItem(item, with: reviewImages)
                             }
-                        case .failure:
-                            break
                         }
-                        if reviewImages.count == photoURLs.count {
-                            print("Photo load")
-                            self?.onStateChange!(self!.state)
-//                            self?.updateReviewItem(item, with: reviewImages)
-                        }
+                    case .failure:
+                        break
                     }
                 }
             }
         }
+        
         return item
     }
+    
+    private func updateReviewItem(_ item: ReviewItem, with images: [UIImage]) {
+        if let index = state.items.firstIndex(where: { ($0 as? ReviewItem)?.id == item.id }) {
+            state.items[index] = ReviewItem(
+                reviewText: item.reviewText,
+                reviewerNameText: item.reviewerNameText,
+                created: item.created,
+                rating: item.rating,
+                onTapShowMore: item.onTapShowMore,
+                reviewCount: item.reviewCount,
+                reviewImage: images
+            )
+            
+            DispatchQueue.main.async {
+                self.onStateChange?(self.state)
+            }
+        }
+    }
 }
+
 
 private extension ReviewsViewModel {
 

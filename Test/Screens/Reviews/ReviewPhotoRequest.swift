@@ -8,7 +8,7 @@
 import Foundation
 import UIKit
 
-class ReviewPhotoRequest {
+final class ReviewPhotoRequest {
     
     static let shared = ReviewPhotoRequest()
     
