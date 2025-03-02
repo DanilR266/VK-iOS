@@ -41,7 +41,10 @@
             "last_name": "Николаев",
             "rating": 1,
             "text": "Ребёнок жалуется, что очень скользские. Пока шла до школы...",
-            "created": "15 минут назад"
+            "created": "15 минут назад",
+            "photo_urls":
+            ["https://fastly.picsum.photos/id/331/200/300.jpg?hmac=p5C3371_uSYqznhNsddJ6h1t3gMS35ijqJoWBTuBRIQ",
+            "https://fastly.picsum.photos/id/331/200/300.jpg?hmac=p5C3371_uSYqznhNsddJ6h1t3gMS35ijqJoWBTuBRIQ"]
         },
         {
             "first_name": "Николай",

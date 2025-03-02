@@ -3,7 +3,7 @@ import UIKit
 extension UIFont {
 
     /// Шрифт, используемый для отображения имени пользователя в отзыве.
-    static let username: UIFont = .systemFont(ofSize: 14.0, weight: .semibold)
+    static let username: UIFont = .systemFont(ofSize: 14.0, weight: .bold)
     /// Шрифт, используемый для отображения текста отзыва.
     static let text: UIFont = .systemFont(ofSize: 15.0)
     /// Шрифт, используемый для кнопки "Показать полностью...".

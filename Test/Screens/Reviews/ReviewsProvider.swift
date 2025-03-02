@@ -2,6 +2,8 @@ import Foundation
 
 /// Класс для загрузки отзывов.
 final class ReviewsProvider {
+    
+    static let shared = ReviewsProvider()
 
     private let bundle: Bundle
 
@@ -31,7 +33,6 @@ extension ReviewsProvider {
 
         // Симулируем сетевой запрос - не менять
         usleep(.random(in: 100_000...1_000_000))
-
         do {
             let data = try Data(contentsOf: url)
             completion(.success(data))

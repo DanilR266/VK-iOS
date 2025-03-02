@@ -5,22 +5,24 @@ final class ReviewsViewModel: NSObject {
 
     /// Замыкание, вызываемое при изменении `state`.
     var onStateChange: ((State) -> Void)?
+    
+    private let queueRewiews = DispatchQueue(label: "com.reviews", attributes: .concurrent)
 
     private var state: State
     private let reviewsProvider: ReviewsProvider
-    private let ratingRenderer: RatingRenderer
     private let decoder: JSONDecoder
+    private let photoRequest: ReviewPhotoRequest
 
     init(
         state: State = State(),
-        reviewsProvider: ReviewsProvider = ReviewsProvider(),
-        ratingRenderer: RatingRenderer = RatingRenderer(),
-        decoder: JSONDecoder = JSONDecoder()
+        reviewsProvider: ReviewsProvider,
+        decoder: JSONDecoder = JSONDecoder(),
+        photoRequest: ReviewPhotoRequest
     ) {
         self.state = state
         self.reviewsProvider = reviewsProvider
-        self.ratingRenderer = ratingRenderer
         self.decoder = decoder
+        self.photoRequest = photoRequest
     }
 
 }
@@ -35,7 +37,10 @@ extension ReviewsViewModel {
     func getReviews() {
         guard state.shouldLoad else { return }
         state.shouldLoad = false
-        reviewsProvider.getReviews(offset: state.offset, completion: gotReviews)
+        queueRewiews.async { [weak self] in
+            guard let self else { return }
+            reviewsProvider.getReviews(offset: self.state.offset, completion: gotReviews)
+        }
     }
 
 }
@@ -52,6 +57,10 @@ private extension ReviewsViewModel {
             state.items += reviews.items.map(makeReviewItem)
             state.offset += state.limit
             state.shouldLoad = state.offset < reviews.count
+            if !state.shouldLoad {
+                let rv = ReviewCountItem(reviewCount: state.items.count)
+                state.items.append(rv)
+            }
         } catch {
             state.shouldLoad = true
         }
@@ -81,10 +90,62 @@ private extension ReviewsViewModel {
     func makeReviewItem(_ review: Review) -> ReviewItem {
         let reviewText = review.text.attributed(font: .text)
         let created = review.created.attributed(font: .created, color: .created)
+        let firstName = review.first_name.attributed(font: .username)
+        let lastName = review.last_name.attributed(font: .username)
+        let reviewerNameText = NSMutableAttributedString()
+        reviewerNameText.append(firstName)
+        reviewerNameText.append(NSAttributedString(string: " "))
+        reviewerNameText.append(lastName)
+        let rating = review.rating
+        let reviewCount = state.items.count
+        var reviewImages = [UIImage]()
+        
         let item = ReviewItem(
             reviewText: reviewText,
+            reviewerNameText: reviewerNameText,
             created: created,
-            onTapShowMore: showMoreReview
+            rating: rating,
+            onTapShowMore: { [weak self] id in
+                self?.showMoreReview(with: id)
+            },
+            reviewCount: reviewCount,
+            reviewImage: reviewImages.isEmpty ? nil : reviewImages
+        )
+        
+        if let photoURLs = review.photo_urls {
+            for urlString in photoURLs {
+                ReviewPhotoRequest.shared.getReviewPhoto(from: urlString) { [weak self] result in
+                    DispatchQueue.main.async {
+                        switch result {
+                        case .success(let data):
+                            if let image = UIImage(data: data) {
+                                reviewImages.append(image)
+                            }
+                        case .failure:
+                            break
+                        }
+                        if reviewImages.count == photoURLs.count {
+                            print("Photo load")
+                            self?.onStateChange!(self!.state)
+//                            self?.updateReviewItem(item, with: reviewImages)
+                        }
+                    }
+                }
+            }
+        }
+        return item
+    }
+}
+
+private extension ReviewsViewModel {
+
+    typealias ReviewCountItem = ReviewCountConfig
+
+    func makeReviewItem(_ review: ReviewCount) -> ReviewCountItem {
+        let reviewCount = review.count
+        
+        let item = ReviewCountItem(
+            reviewCount: reviewCount
         )
         return item
     }
